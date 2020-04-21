@@ -6,7 +6,8 @@ using UnityEngine;
 public class BallReady : MonoBehaviour
 {
     private Animator _animator;
-    private bool _ready = false;
+    private bool _active = false;
+    public SceneController sceneController;
 
     private static readonly int Ready = Animator.StringToHash("Ready");
 
@@ -19,12 +20,31 @@ public class BallReady : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        
     }
 
     private void OnMouseDown()
     {
-        _ready = !_ready;
-        _animator.SetBool(Ready, _ready);
+        if (sceneController)
+        {
+            sceneController.BallClicked(this);
+        }
+        else
+        {
+            Debug.LogWarning("Не обозначен контроллер для шара");
+            _active = !_active;
+            _animator.SetBool(Ready, _active);
+        }
+    }
+    
+    public void setActive()
+    {
+        _active = true;
+        _animator.SetBool(Ready, _active);
+    }
+
+    public void setUnActive()
+    {
+        _active = false;
+        _animator.SetBool(Ready, _active);
     }
 }
