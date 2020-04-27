@@ -2,14 +2,14 @@
 using System.Collections.Generic;
 using UnityEngine;
 
-public class SceneController : MonoBehaviour
+public class SceneManager : MonoBehaviour
 {
-    private static BallReady _activeBall;
+    private BallReady _activeBall;
     private int[,] level =
     {
         {0, 0, 0, 0, 0, 0, 1, 0, 0},
         {0, 0, 1, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0},
+        {0, 0, 0, 0, 1, 0, 0, 0, 0},
         {0, 0, 1, 0, 2, 0, 0, 0, 0},
         {0, 0, 0, 0, 0, 1, 0, 0, 0},
         {0, 2, 0, 1, 0, 0, 0, 0, 0},
@@ -20,15 +20,15 @@ public class SceneController : MonoBehaviour
 
     private int[,] platform =
     {
+        {1, 1, 1, 1, 0, 1, 1, 1, 1},
+        {1, 1, 1, 1, 0, 1, 1, 1, 1},
         {1, 1, 1, 1, 1, 1, 1, 1, 1},
         {1, 1, 1, 1, 1, 1, 1, 1, 1},
+        {0, 0, 1, 1, 1, 1, 1, 0, 0},
         {1, 1, 1, 1, 1, 1, 1, 1, 1},
         {1, 1, 1, 1, 1, 1, 1, 1, 1},
-        {1, 1, 1, 1, 1, 1, 1, 1, 1},
-        {1, 1, 1, 1, 1, 1, 1, 1, 1},
-        {1, 1, 1, 1, 1, 1, 1, 1, 1},
-        {1, 1, 1, 1, 1, 1, 1, 1, 1},
-        {1, 1, 1, 1, 1, 1, 1, 1, 1},
+        {1, 1, 1, 1, 0, 1, 1, 1, 1},
+        {1, 1, 1, 1, 0, 1, 1, 1, 1},
     };
 
     [SerializeField] private GameObject[] ballPrefabs;
@@ -40,17 +40,7 @@ public class SceneController : MonoBehaviour
     // смещение шаров относительно друг друга
     public float offsetX = 1.05f;
     public float offsetY = 1.05f;
-    void Start()
-    {
-        GenerateBallLevel();
-    }
-    
-    void Update()
-    {
-        
-    }
-
-    private void GenerateBallLevel()
+    public void GenerateBallLevel()
     {
         Debug.Log("Генерируем уровень");
         
@@ -73,7 +63,7 @@ public class SceneController : MonoBehaviour
             }
         }
     }
-    public static void BallClicked(BallReady ball)
+    public void BallClicked(BallReady ball)
     {    
         Debug.Log("Контроллер получил шар");
         if (_activeBall) _activeBall.SetUnActive();
@@ -84,5 +74,26 @@ public class SceneController : MonoBehaviour
             _activeBall = ball;
             _activeBall.SetActive();
         }
+    }
+
+    public void PlatformClicked(PlatformReady platform)
+    {
+        Debug.Log("Контроллер получил платформу");
+        
+        if (_activeBall)
+        {
+            // здесь запускаем алгоритм проверки есть ли свободный путь до нужного места в платформе
+            
+            Vector3 newPosition = platform.transform.position;
+            var ballTransform = _activeBall.transform;
+            newPosition.y = ballTransform.position.y;
+            
+            ballTransform.position = newPosition;
+            
+            _activeBall.SetUnActive();
+            
+            _activeBall = null;
+        }
+        
     }
 }

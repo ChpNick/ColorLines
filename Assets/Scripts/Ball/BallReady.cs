@@ -14,15 +14,10 @@ public class BallReady : MonoBehaviour
     {
         _animator = GetComponent<Animator>();
     }
-
-    // Update is called once per frame
-    void Update()
-    {
-    }
-
+    
     private void OnMouseDown()
     {    
-        SceneController.BallClicked(this);
+        Managers.Scene.BallClicked(this);
     }
     
     public void SetActive()
