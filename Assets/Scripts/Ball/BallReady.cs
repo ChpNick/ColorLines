@@ -3,19 +3,18 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class BallReady : MonoBehaviour
+public class BallReady : BaseReady
 {
     private Animator _animator;
 
     private static readonly int Ready = Animator.StringToHash("Ready");
-
-    // Start is called before the first frame update
+    
     void Start()
     {
         _animator = GetComponent<Animator>();
     }
     
-    private void OnMouseDown()
+    public override void Operate()
     {    
         Managers.Scene.BallClicked(this);
     }

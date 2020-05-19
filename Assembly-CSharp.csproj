@@ -59,6 +59,7 @@
   </ItemGroup>
   <ItemGroup>
      <Compile Include="Assets\Scripts\Ball\BallReady.cs" />
+     <Compile Include="Assets\Scripts\Ball\BaseReady.cs" />
      <Compile Include="Assets\Scripts\Ball\PlatformReady.cs" />
      <Compile Include="Assets\Scripts\Managers\Managers.cs" />
      <Compile Include="Assets\Scripts\Managers\SceneManager.cs" />
