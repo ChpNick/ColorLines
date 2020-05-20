@@ -53,27 +53,25 @@ public class SceneManager : MonoBehaviour
         int cols = level.GetLength(1);
         Debug.Log("Размер массива: " + rows + "х" + cols);
 
-        for (int i = 0; i < rows; ++i)
+        for (int z = 0; z < rows; ++z)
+        for (int x = 0; x < cols; ++x)
         {
-            for (int j = 0; j < cols; ++j)
+            float posX = x * offsetX - cols / 2;
+            float posY = startPosY;
+            float posZ = z * offsetY - rows / 2;
+
+            if (level[z, x] > 0)
             {
-                float posX = j * offsetX - cols / 2;
-                float posY = startPosY;
-                float posZ = i * offsetY - rows / 2;
+                GameObject ball = Instantiate(ballPrefabs[level[z, x] - 1], new Vector3(posX, posY, posZ),
+                    Quaternion.identity, Country.transform);
+                ball.GetComponent<BallReady>().SetGameCoords(x, 0, z);
+            }
 
-                if (level[i, j] > 0)
-                {
-                    GameObject ball = Instantiate(ballPrefabs[level[i, j] - 1], new Vector3(posX, posY, posZ),
-                        Quaternion.identity, Country.transform);
-                    ball.GetComponent<BallReady>().SetGameCoords(i, 0, j);
-                }
-
-                if (platformLevel[i, j] > 0)
-                {
-                    GameObject platform = Instantiate(platformPrefabs[platformLevel[i, j] - 1],
-                        new Vector3(posX, posY - 1, posZ), Quaternion.identity, Country.transform);
-                    platform.GetComponent<PlatformReady>().SetGameCoords(i, -1, j);
-                }
+            if (platformLevel[z, x] > 0)
+            {
+                GameObject platform = Instantiate(platformPrefabs[platformLevel[z, x] - 1],
+                    new Vector3(posX, posY - 1, posZ), Quaternion.identity, Country.transform);
+                platform.GetComponent<PlatformReady>().SetGameCoords(x, -1, z);
             }
         }
     }
@@ -97,17 +95,77 @@ public class SceneManager : MonoBehaviour
 
         if (_activeBall)
         {
-            // здесь запускаем алгоритм проверки есть ли свободный путь до нужного места в платформе
+            Vector3Int start = _activeBall.GetGameCoords();
+            Vector3Int finish = platform.GetGameCoords();
 
-            Vector3 newPosition = platform.transform.position;
-            var ballTransform = _activeBall.transform;
-            newPosition.y = ballTransform.position.y;
+            if (level[finish.z, finish.x] != 0 || !CheckPath(start, finish))
+                return;
 
-            ballTransform.position = newPosition;
+            level[finish.z, finish.x] = level[start.z, start.x];
+            level[start.z, start.x] = 0;
 
+            _activeBall.SetGameCoords(finish); // todo тут надо зафиксить так как не верная координата Y 
+
+            Vector3 newBallPosition = platform.transform.localPosition;
+
+            newBallPosition.y = _activeBall.transform.localPosition.y;
+
+            _activeBall.transform.localPosition = newBallPosition;
             _activeBall.SetUnActive();
-
             _activeBall = null;
         }
+    }
+
+    public bool CheckPath(Vector3Int start, Vector3Int finish)
+    {
+        int[,] Map = level.Clone() as int[,];
+
+        bool add = true;
+        int z, x, step = 0;
+
+        Map[start.z, start.x] = 0; // Обнуляем старт, для обозначения волны
+        Map[finish.z, finish.x] = step - 1; // Начинаем с финиша
+
+        int rows = Map.GetLength(0);
+        int cols = Map.GetLength(1);
+
+        while (add == true)
+        {
+            add = false;
+            step--;
+
+            for (z = 0; z < rows; z++)
+            for (x = 0; x < cols; x++)
+            {
+                if (Map[z, x] == step)
+                {
+                    add = true;
+                    //Ставим значение шага-1 в соседние ячейки (если они проходимы)
+                    if (x - 1 >= 0 && Map[z, x - 1] == 0 && platformLevel[z, x - 1] != 0)
+                        Map[z, x - 1] = step - 1;
+
+                    if (z - 1 >= 0 && Map[z - 1, x] == 0 && platformLevel[z - 1, x] != 0)
+                        Map[z - 1, x] = step - 1;
+
+                    if (x + 1 < cols && Map[z, x + 1] == 0 && platformLevel[z, x + 1] != 0)
+                        Map[z, x + 1] = step - 1;
+
+                    if (z + 1 < rows && Map[z + 1, x] == 0 && platformLevel[z + 1, x] != 0)
+                        Map[z + 1, x] = step - 1;
+                }
+            }
+
+            if (Map[start.z, start.x] != 0)
+                add = false;
+        }
+
+        if (Map[start.z, start.x] != 0)
+        {
+            Debug.Log("Путь найден");
+            return true;
+        }
+
+        Debug.Log("Путь не найден");
+        return false;
     }
 }
