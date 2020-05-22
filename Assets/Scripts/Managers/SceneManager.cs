@@ -6,7 +6,7 @@ public class SceneManager : MonoBehaviour
 {
     private BallReady _activeBall;
 
-    private int[,] level =
+    private int[,] ballLevel =
     {
         {0, 0, 0, 0, 0, 0, 1, 0, 0},
         {0, 0, 1, 0, 0, 0, 0, 0, 0},
@@ -35,13 +35,13 @@ public class SceneManager : MonoBehaviour
     [SerializeField] private GameObject[] ballPrefabs;
     [SerializeField] private GameObject[] platformPrefabs;
     public GameObject Country { get; private set; } // объект сцены со всеми шарами и платформой
-
-    // стартовая позиция для генерации расположения шаров на уровне
-    public float startPosY = 1;
-
+    
     // смещение шаров относительно друг друга
     public float offsetX = 1.05f;
     public float offsetY = 1.05f;
+
+    public int rows; // количество строк в уровне
+    public int cols; // количество колонок в уровне
 
     public void GenerateBallLevel()
     {
@@ -49,33 +49,43 @@ public class SceneManager : MonoBehaviour
 
         Country = new GameObject("Country");
 
-        int rows = level.GetLength(0);
-        int cols = level.GetLength(1);
+        rows = ballLevel.GetLength(0);
+        cols = ballLevel.GetLength(1);
         Debug.Log("Размер массива: " + rows + "х" + cols);
 
         for (int z = 0; z < rows; ++z)
         for (int x = 0; x < cols; ++x)
         {
-            float posX = x * offsetX - cols / 2;
-            float posY = startPosY;
-            float posZ = z * offsetY - rows / 2;
-
-            if (level[z, x] > 0)
-            {
-                GameObject ball = Instantiate(ballPrefabs[level[z, x] - 1], new Vector3(posX, posY, posZ),
-                    Quaternion.identity, Country.transform);
-                ball.GetComponent<BallReady>().SetGameCoords(x, 0, z);
-            }
-
             if (platformLevel[z, x] > 0)
-            {
-                GameObject platform = Instantiate(platformPrefabs[platformLevel[z, x] - 1],
-                    new Vector3(posX, posY - 1, posZ), Quaternion.identity, Country.transform);
-                platform.GetComponent<PlatformReady>().SetGameCoords(x, -1, z);
-            }
+                CreatePlatform(x, z, platformLevel[z, x] - 1);
+            
+            if (ballLevel[z, x] > 0)
+                CreateBall(x, z, ballLevel[z, x] - 1);
         }
     }
 
+    public void CreateBall(int x, int z, int ballId)
+    {
+        Vector3 position = GameCoordsToPosition(x, 0, z);
+        GameObject ball = Instantiate(ballPrefabs[ballId], position, Quaternion.identity, Country.transform);
+        ball.GetComponent<BallReady>().SetGameCoords(x, 0, z);
+    }
+
+    public void CreatePlatform(int x, int z, int platformId)
+    {
+        Vector3 position = GameCoordsToPosition(x, -1, z);
+        GameObject platform = Instantiate(platformPrefabs[platformId], position, Quaternion.identity, Country.transform);
+        platform.GetComponent<PlatformReady>().SetGameCoords(x, -1, z);
+    }
+
+    public Vector3 GameCoordsToPosition(int gameX, int gameY, int gameZ)
+    {
+        float posX = gameX * offsetX - cols / 2;
+        float posY = gameY;
+        float posZ = -(gameZ * offsetY - rows / 2);
+        return new Vector3(posX, posY, posZ);
+    }
+    
     public void BallClicked(BallReady ball)
     {
         Debug.Log("Контроллер получил шар");
@@ -98,13 +108,13 @@ public class SceneManager : MonoBehaviour
             Vector3Int start = _activeBall.GetGameCoords();
             Vector3Int finish = platform.GetGameCoords();
 
-            if (level[finish.z, finish.x] != 0 || !CheckPath(start, finish))
+            if (ballLevel[finish.z, finish.x] != 0 || !CheckPath(start, finish))
                 return;
 
-            level[finish.z, finish.x] = level[start.z, start.x];
-            level[start.z, start.x] = 0;
-
-            _activeBall.SetGameCoords(finish); // todo тут надо зафиксить так как не верная координата Y 
+            ballLevel[finish.z, finish.x] = ballLevel[start.z, start.x];
+            ballLevel[start.z, start.x] = 0;
+            
+            _activeBall.SetGameCoords(finish + Vector3Int.up); 
 
             Vector3 newBallPosition = platform.transform.localPosition;
 
@@ -115,10 +125,12 @@ public class SceneManager : MonoBehaviour
             _activeBall = null;
         }
     }
+    
+    // public void MoveBall(GameObject ball, Vector3Int)
 
     public bool CheckPath(Vector3Int start, Vector3Int finish)
     {
-        int[,] Map = level.Clone() as int[,];
+        int[,] Map = ballLevel.Clone() as int[,];
 
         bool add = true;
         int z, x, step = 0;
