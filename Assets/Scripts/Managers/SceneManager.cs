@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class SceneManager : MonoBehaviour
 {
+    private const int ADD_BALLS = 2;
+    
+    // private Random _random = new Random();
     private BallReady _activeBall;
 
     private int[,] ballLevel =
@@ -35,7 +38,7 @@ public class SceneManager : MonoBehaviour
     [SerializeField] private GameObject[] ballPrefabs;
     [SerializeField] private GameObject[] platformPrefabs;
     public GameObject Country { get; private set; } // объект сцены со всеми шарами и платформой
-    
+
     // смещение шаров относительно друг друга
     public float offsetX = 1.05f;
     public float offsetY = 1.05f;
@@ -43,7 +46,7 @@ public class SceneManager : MonoBehaviour
     public int rows; // количество строк в уровне
     public int cols; // количество колонок в уровне
 
-    public void GenerateBallLevel()
+    public void GenerateLevel()
     {
         Debug.Log("Генерируем уровень");
 
@@ -58,7 +61,7 @@ public class SceneManager : MonoBehaviour
         {
             if (platformLevel[z, x] > 0)
                 CreatePlatform(x, z, platformLevel[z, x] - 1);
-            
+
             if (ballLevel[z, x] > 0)
                 CreateBall(x, z, ballLevel[z, x] - 1);
         }
@@ -66,26 +69,16 @@ public class SceneManager : MonoBehaviour
 
     public void CreateBall(int x, int z, int ballId)
     {
-        Vector3 position = GameCoordsToPosition(x, 0, z);
-        GameObject ball = Instantiate(ballPrefabs[ballId], position, Quaternion.identity, Country.transform);
-        ball.GetComponent<BallReady>().SetGameCoords(x, 0, z);
+        GameObject ball = Instantiate(ballPrefabs[ballId], Country.transform);
+        ball.GetComponent<BallReady>().Move(x, 0, z);
     }
 
     public void CreatePlatform(int x, int z, int platformId)
     {
-        Vector3 position = GameCoordsToPosition(x, -1, z);
-        GameObject platform = Instantiate(platformPrefabs[platformId], position, Quaternion.identity, Country.transform);
-        platform.GetComponent<PlatformReady>().SetGameCoords(x, -1, z);
+        GameObject platform = Instantiate(platformPrefabs[platformId], Country.transform);
+        platform.GetComponent<PlatformReady>().Move(x, -1, z);
     }
 
-    public Vector3 GameCoordsToPosition(int gameX, int gameY, int gameZ)
-    {
-        float posX = gameX * offsetX - cols / 2;
-        float posY = gameY;
-        float posZ = -(gameZ * offsetY - rows / 2);
-        return new Vector3(posX, posY, posZ);
-    }
-    
     public void BallClicked(BallReady ball)
     {
         Debug.Log("Контроллер получил шар");
@@ -111,22 +104,23 @@ public class SceneManager : MonoBehaviour
             if (ballLevel[finish.z, finish.x] != 0 || !CheckPath(start, finish))
                 return;
 
-            ballLevel[finish.z, finish.x] = ballLevel[start.z, start.x];
-            ballLevel[start.z, start.x] = 0;
-            
-            _activeBall.SetGameCoords(finish + Vector3Int.up); 
-
-            Vector3 newBallPosition = platform.transform.localPosition;
-
-            newBallPosition.y = _activeBall.transform.localPosition.y;
-
-            _activeBall.transform.localPosition = newBallPosition;
-            _activeBall.SetUnActive();
-            _activeBall = null;
+            MoveActiveBall(finish + Vector3Int.up);
+            AddRandomBalls();
         }
     }
-    
-    // public void MoveBall(GameObject ball, Vector3Int)
+
+    private void MoveActiveBall(Vector3Int finish)
+    {
+        Vector3Int start = _activeBall.GetGameCoords();
+
+        ballLevel[finish.z, finish.x] = ballLevel[start.z, start.x];
+        ballLevel[start.z, start.x] = 0;
+
+        _activeBall.Move(finish);
+
+        _activeBall.SetUnActive();
+        _activeBall = null;
+    }
 
     public bool CheckPath(Vector3Int start, Vector3Int finish)
     {
@@ -179,5 +173,39 @@ public class SceneManager : MonoBehaviour
 
         Debug.Log("Путь не найден");
         return false;
+    }
+
+    private void AddRandomBalls()
+    {
+        for (int i = 0; i < ADD_BALLS; i++)
+            AddRandomBall();
+    }
+
+    private void AddRandomBall()
+    {
+        int x, z;
+        int loop = rows * cols;
+        do
+        {
+            x = Random.Range(0, cols);
+            z = Random.Range(0, rows);
+            if (--loop <= 0) return;
+        } while (ballLevel[z, x] > 0 || platformLevel[z, x] == 0);
+
+        ballLevel[z, x] = Random.Range(1, ballPrefabs.Length + 1);
+        CreateBall(x, z, ballLevel[z, x] - 1);
+    }
+
+    public Vector3 GameCoordsToPosition(int gameX, int gameY, int gameZ)
+    {
+        float posX = gameX * offsetX - cols / 2;
+        float posY = gameY;
+        float posZ = -(gameZ * offsetY - rows / 2);
+        return new Vector3(posX, posY, posZ);
+    }
+
+    public Vector3 GameCoordsToPosition(Vector3Int gameCoords)
+    {
+        return GameCoordsToPosition(gameCoords.x, gameCoords.y, gameCoords.z);
     }
 }

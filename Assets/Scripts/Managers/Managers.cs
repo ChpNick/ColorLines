@@ -16,6 +16,6 @@ public class Managers : MonoBehaviour {
 
     private void Start()
     {
-        Scene.GenerateBallLevel();
+        Scene.GenerateLevel();
     }
 }

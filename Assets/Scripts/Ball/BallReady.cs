@@ -15,7 +15,7 @@ public class BallReady : BaseReady
     }
     
     public override void Operate()
-    {    
+    {
         Managers.Scene.BallClicked(this);
     }
     

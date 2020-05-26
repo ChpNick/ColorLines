@@ -4,7 +4,7 @@ using System.Collections.Generic;
 using System.Web;
 using UnityEngine;
 
-public class BaseReady : MonoBehaviour
+public abstract class BaseReady : MonoBehaviour
 {
     [Header("Игровые координаты объекта")]
     [SerializeField]
@@ -15,10 +15,8 @@ public class BaseReady : MonoBehaviour
         Operate();
     }
     
-    
-    public virtual void Operate() {
-        // поведение конкретного объекта шара ли платформы
-    }
+    // поведение конкретного объекта шара или платформы
+    public abstract void Operate();
 
     public void SetGameCoords(int x, int y, int z)
     {
@@ -35,6 +33,21 @@ public class BaseReady : MonoBehaviour
         return gameCoords;
     }
 
+    /// <summary>
+    ///   <para>Перемещает объект по игровым координатам.</para>
+    /// </summary>
+    public void Move(Vector3Int gameCoords)
+    {
+        SetGameCoords(gameCoords);
+        Vector3 position = Managers.Scene.GameCoordsToPosition(gameCoords);
+        position.y += transform.localPosition.y % 10; // берем остаток от анимации прыгания(на случай шарика)
+        transform.localPosition = position;
+    }
+
+    public void Move(int x, int y, int z)
+    {
+        Move(new Vector3Int(x, y, z));
+    }
 }
 
 
