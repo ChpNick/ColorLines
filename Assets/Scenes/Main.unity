@@ -363,9 +363,10 @@ MonoBehaviour:
   - {fileID: 6485117886603181244, guid: 7621783413b7c1f46a752d61870eb4b8, type: 3}
   platformPrefabs:
   - {fileID: 8450328982221317434, guid: 567644b762cd7dd4aaee324a743045e6, type: 3}
-  startPosY: 1
   offsetX: 1.05
   offsetY: 1.05
+  rows: 0
+  cols: 0
 --- !u!114 &2061950574
 MonoBehaviour:
   m_ObjectHideFlags: 0
