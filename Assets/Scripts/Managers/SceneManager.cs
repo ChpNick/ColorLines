@@ -5,7 +5,7 @@ using UnityEngine;
 public class SceneManager : MonoBehaviour
 {
     private const int ADD_BALLS = 2;
-    
+
     // private Random _random = new Random();
     private BallReady _activeBall;
 
@@ -105,10 +105,47 @@ public class SceneManager : MonoBehaviour
                 return;
 
             MoveActiveBall(finish + Vector3Int.up);
+            CutLines();
             AddRandomBalls();
         }
     }
 
+    private bool CutLines()
+    {
+        int balls = 0;
+        for (int z = 0; z < rows; ++z)
+        for (int x = 0; x < cols; ++x)
+        {
+            balls += CulculateLine(x, z, 1, 0);
+            balls += CulculateLine(x, z, 0, 1);
+            balls += CulculateLine(x, z, 1, 1);
+            balls += CulculateLine(x, z, -1, 1);
+        }
+
+        if (balls > 0)
+        {
+            Debug.Log("Линия должна быть вырезана");
+            return true;
+        }
+
+        return false;
+    }
+
+    private int CulculateLine(int x0, int z0, int dx, int dz)
+    {
+        int ball = ballLevel[z0, x0];
+        if (ball == 0)
+            return 0;
+
+        int count = 0;
+        for (int x = x0, z = z0; GetBallLevelId(x, z) == ball; x += dx, z += dz)
+        {
+            count++;
+        }
+
+        return count < 5 ? 0 : count;
+    }
+    
     private void MoveActiveBall(Vector3Int finish)
     {
         Vector3Int start = _activeBall.GetGameCoords();
@@ -207,5 +244,16 @@ public class SceneManager : MonoBehaviour
     public Vector3 GameCoordsToPosition(Vector3Int gameCoords)
     {
         return GameCoordsToPosition(gameCoords.x, gameCoords.y, gameCoords.z);
+    }
+    
+    private bool OnLevel(int x, int z)
+    {
+        return z >= 0 && z <= rows - 1 && x >= 0 && x <= cols - 1;
+    }
+
+    private int GetBallLevelId(int x, int z)
+    {
+        if (!OnLevel(x, z)) return 0;
+        return ballLevel[z, x];
     }
 }
