@@ -9,6 +9,8 @@ public class SceneManager : MonoBehaviour
     // private Random _random = new Random();
     private BallReady _activeBall;
 
+    private GameObject[,] ballLevelObject;
+
     private int[,] ballLevel =
     {
         {0, 0, 0, 0, 0, 0, 1, 0, 0},
@@ -50,10 +52,12 @@ public class SceneManager : MonoBehaviour
     {
         Debug.Log("Генерируем уровень");
 
-        Country = new GameObject("Country");
-
         rows = ballLevel.GetLength(0);
         cols = ballLevel.GetLength(1);
+
+        Country = new GameObject("Country");
+        ballLevelObject = new GameObject[rows, cols];
+
         Debug.Log("Размер массива: " + rows + "х" + cols);
 
         for (int z = 0; z < rows; ++z)
@@ -71,6 +75,7 @@ public class SceneManager : MonoBehaviour
     {
         GameObject ball = Instantiate(ballPrefabs[ballId], Country.transform);
         ball.GetComponent<BallReady>().Move(x, 0, z);
+        ballLevelObject[z, x] = ball;
     }
 
     public void CreatePlatform(int x, int z, int platformId)
@@ -105,53 +110,71 @@ public class SceneManager : MonoBehaviour
                 return;
 
             MoveActiveBall(finish + Vector3Int.up);
-            CutLines();
-            AddRandomBalls();
+            if (!CutLines())
+            {
+                AddRandomBalls();
+                CutLines();
+            }
+                
         }
     }
 
     private bool CutLines()
     {
-        int balls = 0;
+        List<GameObject> balls = new List<GameObject>();
         for (int z = 0; z < rows; ++z)
         for (int x = 0; x < cols; ++x)
         {
-            balls += CulculateLine(x, z, 1, 0);
-            balls += CulculateLine(x, z, 0, 1);
-            balls += CulculateLine(x, z, 1, 1);
-            balls += CulculateLine(x, z, -1, 1);
+            balls.AddRange(CulculateLine(x, z, 1, 0));
+            balls.AddRange(CulculateLine(x, z, 0, 1));
+            balls.AddRange(CulculateLine(x, z, 1, 1));
+            balls.AddRange(CulculateLine(x, z, -1, 1));
         }
 
-        if (balls > 0)
+        if (balls.Count == 0) return false;
+        
+        Debug.Log("Уничтожаем объекты");
+        foreach (GameObject ball in balls)
         {
-            Debug.Log("Линия должна быть вырезана");
-            return true;
-        }
+            Vector3Int gameCoords = ball.GetComponent<BallReady>().GetGameCoords();
+            ballLevel[gameCoords.z, gameCoords.x] = 0;
+            ballLevelObject[gameCoords.z, gameCoords.x] = null;
+            Destroy(ball, 0.5f);
+        } 
+        
+        balls.Clear();
+        return true;
 
-        return false;
     }
 
-    private int CulculateLine(int x0, int z0, int dx, int dz)
+    private List<GameObject> CulculateLine(int x0, int z0, int dx, int dz)
     {
+        List<GameObject> balls = new List<GameObject>();
+
         int ball = ballLevel[z0, x0];
         if (ball == 0)
-            return 0;
+            return balls;
 
-        int count = 0;
         for (int x = x0, z = z0; GetBallLevelId(x, z) == ball; x += dx, z += dz)
         {
-            count++;
+            balls.Add(ballLevelObject[z, x]);
         }
 
-        return count < 5 ? 0 : count;
+        if (balls.Count < 5)
+            balls.Clear();
+
+        return balls;
     }
-    
+
     private void MoveActiveBall(Vector3Int finish)
     {
         Vector3Int start = _activeBall.GetGameCoords();
 
         ballLevel[finish.z, finish.x] = ballLevel[start.z, start.x];
         ballLevel[start.z, start.x] = 0;
+
+        ballLevelObject[finish.z, finish.x] = ballLevelObject[start.z, start.x];
+        ballLevelObject[start.z, start.x] = null;
 
         _activeBall.Move(finish);
 
@@ -229,7 +252,7 @@ public class SceneManager : MonoBehaviour
             if (--loop <= 0) return;
         } while (ballLevel[z, x] > 0 || platformLevel[z, x] == 0);
 
-        ballLevel[z, x] = Random.Range(1, ballPrefabs.Length + 1);
+        ballLevel[z, x] = Random.Range(1, ballPrefabs.Length + 1); // зафиксить присвоение, перенести в креате балл
         CreateBall(x, z, ballLevel[z, x] - 1);
     }
 
@@ -245,7 +268,7 @@ public class SceneManager : MonoBehaviour
     {
         return GameCoordsToPosition(gameCoords.x, gameCoords.y, gameCoords.z);
     }
-    
+
     private bool OnLevel(int x, int z)
     {
         return z >= 0 && z <= rows - 1 && x >= 0 && x <= cols - 1;
