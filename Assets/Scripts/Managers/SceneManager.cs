@@ -1,6 +1,7 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Assertions;
 
 public class SceneManager : MonoBehaviour
 {
@@ -64,23 +65,25 @@ public class SceneManager : MonoBehaviour
         for (int x = 0; x < cols; ++x)
         {
             if (platformLevel[z, x] > 0)
-                CreatePlatform(x, z, platformLevel[z, x] - 1);
+                CreatePlatform(x, z, platformLevel[z, x]);
 
             if (ballLevel[z, x] > 0)
-                CreateBall(x, z, ballLevel[z, x] - 1);
+                CreateBall(x, z, ballLevel[z, x]);
         }
     }
 
     public void CreateBall(int x, int z, int ballId)
     {
-        GameObject ball = Instantiate(ballPrefabs[ballId], Country.transform);
+        // ballPrefabs[ballId - 1] --- "-1" так как нумерация в массиве с 1 идет
+        Assert.IsTrue(ballId > 0);
+        GameObject ball = Instantiate(ballPrefabs[ballId - 1], Country.transform);
         ball.GetComponent<BallReady>().Move(x, 0, z);
         ballLevelObject[z, x] = ball;
     }
 
     public void CreatePlatform(int x, int z, int platformId)
     {
-        GameObject platform = Instantiate(platformPrefabs[platformId], Country.transform);
+        GameObject platform = Instantiate(platformPrefabs[platformId - 1], Country.transform);
         platform.GetComponent<PlatformReady>().Move(x, -1, z);
     }
 
@@ -115,7 +118,6 @@ public class SceneManager : MonoBehaviour
                 AddRandomBalls();
                 CutLines();
             }
-                
         }
     }
 
@@ -196,7 +198,7 @@ public class SceneManager : MonoBehaviour
         int rows = Map.GetLength(0);
         int cols = Map.GetLength(1);
 
-        while (add == true)
+        while (add)
         {
             add = false;
             step--;
@@ -252,7 +254,7 @@ public class SceneManager : MonoBehaviour
         int x = cell.x;
         
         ballLevel[z, x] = Random.Range(0, ballPrefabs.Length) + 1; // зафиксить присвоение, перенести в креате балл
-        CreateBall(x, z, ballLevel[z, x] - 1);
+        CreateBall(x, z, ballLevel[z, x]);
     }
 
     private List<Vector3Int> GetEmptyCell()
