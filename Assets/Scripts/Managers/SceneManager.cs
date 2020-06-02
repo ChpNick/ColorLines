@@ -45,7 +45,7 @@ public class SceneManager : MonoBehaviour
 
     public int rows; // количество строк в уровне
     public int cols; // количество колонок в уровне
-    
+
     private const int EmptyBallId = 0;
     private const int EmptyPlatformId = 0;
 
@@ -68,26 +68,38 @@ public class SceneManager : MonoBehaviour
         for (int x = 0; x < cols; ++x)
         {
             if (platformLevel[z, x] != EmptyPlatformId)
-                CreatePlatform(x, z, platformLevel[z, x]);
+                CreatePlatform(x, -1, z, platformLevel[z, x]);
 
             if (ballLevel[z, x] != EmptyBallId)
-                CreateBall(x, z, ballLevel[z, x]);
+                CreateBall(x, 0, z, ballLevel[z, x]);
         }
     }
 
-    public void CreateBall(int x, int z, int ballId)
+    public void CreateBall(int x, int y, int z, int ballId)
     {
         // ballPrefabs[ballId - 1] --- "-1" так как нумерация в массиве с 1 идет
         Assert.IsTrue(ballId > EmptyBallId);
+
         GameObject ball = Instantiate(ballPrefabs[ballId - 1], Country.transform);
-        ball.GetComponent<BallReady>().Move(x, 0, z);
+        ball.GetComponent<BallReady>().Move(x, y, z);
+        ballLevel[z, x] = ballId;
         ballLevelObject[z, x] = ball;
     }
 
-    public void CreatePlatform(int x, int z, int platformId)
+    public void CreateBall(Vector3Int gameCoords, int ballId)
+    {
+        CreateBall(gameCoords.x, gameCoords.y, gameCoords.z, ballId);
+    }
+
+    public void CreatePlatform(int x, int y, int z, int platformId)
     {
         GameObject platform = Instantiate(platformPrefabs[platformId - 1], Country.transform);
-        platform.GetComponent<PlatformReady>().Move(x, -1, z);
+        platform.GetComponent<PlatformReady>().Move(x, y, z);
+    }
+
+    public void CreatePlatform(Vector3Int gameCoords, int platformId)
+    {
+        CreatePlatform(gameCoords.x, gameCoords.y, gameCoords.z, platformId);
     }
 
     public void BallClicked(BallReady ball)
@@ -127,7 +139,7 @@ public class SceneManager : MonoBehaviour
     private bool CutLines()
     {
         List<GameObject> balls = new List<GameObject>();
-        
+
         for (int z = 0; z < rows; ++z)
         for (int x = 0; x < cols; ++x)
         {
@@ -138,7 +150,7 @@ public class SceneManager : MonoBehaviour
         }
 
         if (balls.Count == 0) return false;
-        
+
         Debug.Log("Уничтожаем объекты");
         foreach (GameObject ball in balls)
         {
@@ -146,17 +158,16 @@ public class SceneManager : MonoBehaviour
             ballLevel[gameCoords.z, gameCoords.x] = EmptyBallId;
             ballLevelObject[gameCoords.z, gameCoords.x] = null;
             Destroy(ball, 0.5f);
-        } 
-        
+        }
+
         balls.Clear();
         return true;
-
     }
 
     private List<GameObject> CulculateLine(int x0, int z0, int dx, int dz)
     {
         List<GameObject> balls = new List<GameObject>();
-        
+
         int ball = GetBallLevelId(x0, z0);
         if (ball == EmptyBallId) return balls;
 
@@ -251,12 +262,10 @@ public class SceneManager : MonoBehaviour
         List<Vector3Int> emptyCell = GetEmptyCell();
         if (emptyCell.Count == 0) return;
         
-        Vector3Int cell = emptyCell[Random.Range(0, emptyCell.Count)];
-        int z = cell.z;
-        int x = cell.x;
+        Vector3Int gameCoords = emptyCell[Random.Range(0, emptyCell.Count)];
         
-        ballLevel[z, x] = Random.Range(0, ballPrefabs.Length) + 1; // зафиксить присвоение, перенести в креате балл
-        CreateBall(x, z, ballLevel[z, x]);
+        int ballId = Random.Range(0, ballPrefabs.Length) + 1; // зафиксить присвоение, перенести в креате балл
+        CreateBall(gameCoords, ballId);
     }
 
     private List<Vector3Int> GetEmptyCell()
@@ -265,7 +274,7 @@ public class SceneManager : MonoBehaviour
         for (int z = 0; z < rows; ++z)
         for (int x = 0; x < cols; ++x)
             if (GetBallLevelId(x, z) == EmptyBallId && platformLevel[z, x] != EmptyPlatformId)
-                emptyCell.Add(new Vector3Int(x, 0 , z));
+                emptyCell.Add(new Vector3Int(x, 0, z));
         return emptyCell;
     }
 
@@ -295,6 +304,6 @@ public class SceneManager : MonoBehaviour
 
     private int GetBallLevelId(Vector3Int gameCoords)
     {
-        return GetBallLevelId(gameCoords.x, gameCoords.y);
+        return GetBallLevelId(gameCoords.x, gameCoords.z);
     }
 }
