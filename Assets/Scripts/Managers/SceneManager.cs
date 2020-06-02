@@ -122,6 +122,7 @@ public class SceneManager : MonoBehaviour
     private bool CutLines()
     {
         List<GameObject> balls = new List<GameObject>();
+        
         for (int z = 0; z < rows; ++z)
         for (int x = 0; x < cols; ++x)
         {
@@ -243,17 +244,25 @@ public class SceneManager : MonoBehaviour
 
     private void AddRandomBall()
     {
-        int x, z;
-        int loop = rows * cols;
-        do
-        {
-            x = Random.Range(0, cols);
-            z = Random.Range(0, rows);
-            if (--loop <= 0) return;
-        } while (ballLevel[z, x] > 0 || platformLevel[z, x] == 0);
-
-        ballLevel[z, x] = Random.Range(1, ballPrefabs.Length + 1); // зафиксить присвоение, перенести в креате балл
+        List<Vector3Int> emptyCell = GetEmptyCell();
+        if (emptyCell.Count == 0) return;
+        
+        Vector3Int cell = emptyCell[Random.Range(0, emptyCell.Count)];
+        int z = cell.z;
+        int x = cell.x;
+        
+        ballLevel[z, x] = Random.Range(0, ballPrefabs.Length) + 1; // зафиксить присвоение, перенести в креате балл
         CreateBall(x, z, ballLevel[z, x] - 1);
+    }
+
+    private List<Vector3Int> GetEmptyCell()
+    {
+        List<Vector3Int> emptyCell = new List<Vector3Int>();
+        for (int z = 0; z < rows; ++z)
+        for (int x = 0; x < cols; ++x)
+            if (GetBallLevelId(x, z) == 0 && platformLevel[z, x] > 0)
+                emptyCell.Add(new Vector3Int(x, 0 , z));
+        return emptyCell;
     }
 
     public Vector3 GameCoordsToPosition(int gameX, int gameY, int gameZ)
