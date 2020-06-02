@@ -46,8 +46,8 @@ public class SceneManager : MonoBehaviour
     public int rows; // количество строк в уровне
     public int cols; // количество колонок в уровне
 
-    private const int EmptyBallId = 0;
-    private const int EmptyPlatformId = 0;
+    private const int EmptyBallId = 0; // Значение пустой клетки в уровне шаров
+    private const int EmptyPlatformId = 0; // Значение пустой клетки в уровне платформ
 
     public int cutBallsCount = 5; // количество шаров, которое необходимо вырезать
     public int addBalls = 2; // Количество добавляемых шариков на сцену
@@ -264,7 +264,7 @@ public class SceneManager : MonoBehaviour
         
         Vector3Int gameCoords = emptyCell[Random.Range(0, emptyCell.Count)];
         
-        int ballId = Random.Range(0, ballPrefabs.Length) + 1; // зафиксить присвоение, перенести в креате балл
+        int ballId = Random.Range(0, ballPrefabs.Length) + 1;
         CreateBall(gameCoords, ballId);
     }
 
