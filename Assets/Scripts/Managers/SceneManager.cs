@@ -81,8 +81,9 @@ public class SceneManager : MonoBehaviour
         Assert.IsTrue(ballId > EmptyBallId);
 
         GameObject ball = Instantiate(ballPrefabs[ballId - 1], Country.transform);
-        ball.GetComponent<BallReady>().Move(x, y, z);
-        ballLevel[z, x] = ballId;
+        BallReady ballReady = ball.GetComponent<BallReady>(); 
+        ballReady.Move(x, y, z);
+        ballReady.SetId(ballId);
         ballLevelObject[z, x] = ball;
     }
 
@@ -155,7 +156,6 @@ public class SceneManager : MonoBehaviour
         foreach (GameObject ball in balls)
         {
             Vector3Int gameCoords = ball.GetComponent<BallReady>().GetGameCoords();
-            ballLevel[gameCoords.z, gameCoords.x] = EmptyBallId;
             ballLevelObject[gameCoords.z, gameCoords.x] = null;
             Destroy(ball, 0.5f);
         }
@@ -195,16 +195,23 @@ public class SceneManager : MonoBehaviour
 
     private void SwapBall(Vector3Int start, Vector3Int finish)
     {
-        ballLevel[finish.z, finish.x] = ballLevel[start.z, start.x];
-        ballLevel[start.z, start.x] = EmptyBallId;
-
         ballLevelObject[finish.z, finish.x] = ballLevelObject[start.z, start.x];
         ballLevelObject[start.z, start.x] = null;
     }
 
+    public int[,] BallObjectToIntArray()
+    {
+        int[,] Map = new int[rows, cols];
+        for (int z = 0; z < rows; z++)
+        for (int x = 0; x < cols; x++)
+            Map[z, x] = GetBallLevelId(x, z);
+
+        return Map;
+    }
+
     public bool CheckPath(Vector3Int start, Vector3Int finish)
     {
-        int[,] Map = ballLevel.Clone() as int[,];
+        int[,] Map = BallObjectToIntArray();
 
         bool add = true;
         int z, x, step = EmptyBallId;
@@ -303,7 +310,10 @@ public class SceneManager : MonoBehaviour
     private int GetBallLevelId(int x, int z)
     {
         if (!OnLevel(x, z)) return EmptyBallId;
-        return ballLevel[z, x];
+        if (ballLevelObject[z, x] == null) 
+            return 0;
+        return ballLevelObject[z, x].GetComponent<BallReady>().GetId();
+     
     }
 
     private int GetBallLevelId(Vector3Int gameCoords)

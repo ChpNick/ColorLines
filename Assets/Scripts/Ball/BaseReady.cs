@@ -10,9 +10,21 @@ public abstract class BaseReady : MonoBehaviour
     [SerializeField]
     private Vector3Int gameCoords = Vector3Int.zero;
     
+    public int id = 1;
+    
     private void OnMouseDown()
     {
         Operate();
+    }
+
+    public int GetId()
+    {
+        return id;
+    }
+
+    public void SetId(int id)
+    {
+        this.id = id;
     }
     
     // поведение конкретного объекта шара или платформы

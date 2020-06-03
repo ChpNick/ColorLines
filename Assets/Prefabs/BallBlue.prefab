@@ -126,3 +126,5 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 63b8ad5c81eaf794280d632d3c6d3f2f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  gameCoords: {x: 0, y: 0, z: 0}
+  id: 2
