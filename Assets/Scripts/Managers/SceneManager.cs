@@ -5,35 +5,7 @@ using UnityEngine.Assertions;
 
 public class SceneManager : MonoBehaviour
 {
-    private BallReady _activeBall;
-
-    private GameObject[,] ballLevelObject;
-
-    private int[,] ballLevel =
-    {
-        {0, 0, 0, 0, 0, 0, 1, 0, 0},
-        {0, 0, 1, 0, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 1, 0, 0, 0, 0},
-        {0, 0, 1, 0, 2, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 1, 0, 0, 0},
-        {0, 2, 0, 1, 0, 0, 0, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0},
-        {0, 1, 0, 0, 2, 0, 1, 0, 0},
-        {0, 0, 0, 0, 0, 0, 0, 0, 0},
-    };
-
-    private int[,] platformLevel =
-    {
-        {0, 1, 1, 1, 0, 1, 1, 1, 0},
-        {1, 1, 1, 1, 0, 1, 1, 1, 1},
-        {1, 1, 1, 1, 1, 1, 1, 1, 1},
-        {0, 0, 1, 1, 1, 1, 1, 0, 0},
-        {0, 0, 1, 1, 1,  1, 1, 0, 0},
-        {0, 0, 1, 1, 1, 1, 1, 0, 0},
-        {1, 1, 1, 1, 1, 1, 1, 1, 1},
-        {1, 1, 1, 1, 0, 1, 1, 1, 1},
-        {0, 1, 1, 1, 0, 1, 1, 1, 0},
-    };
+    private BallReady _activeBall; // шар который выбран для игры
 
     [SerializeField] private GameObject[] ballPrefabs;
     [SerializeField] private GameObject[] platformPrefabs;
@@ -51,40 +23,49 @@ public class SceneManager : MonoBehaviour
 
     public int cutBallsCount = 5; // количество шаров, которое необходимо вырезать
     public int addBalls = 2; // Количество добавляемых шариков на сцену
+    
+    private int[,] _platform; // текущий уровень платформ полученный от менеджера
+    private BallReady[,] _level; // массив с шарами
 
-    public void GenerateLevel()
+    public void StartLevel()
     {
         Debug.Log("Генерируем уровень");
 
-        rows = ballLevel.GetLength(0);
-        cols = ballLevel.GetLength(1);
+        int[,] level = Managers.LevelManager.GetLevel()[0];
+        _platform = Managers.LevelManager.GetLevel()[1];
+
+        rows = level.GetLength(0);
+        cols = level.GetLength(1);
 
         Country = new GameObject("Country");
-        ballLevelObject = new GameObject[rows, cols];
+        _level = new BallReady[rows, cols];
 
         Debug.Log("Размер массива: " + rows + "х" + cols);
 
         for (int z = 0; z < rows; ++z)
         for (int x = 0; x < cols; ++x)
         {
-            if (platformLevel[z, x] != EmptyPlatformId)
-                CreatePlatform(x, -1, z, platformLevel[z, x]);
+            if (_platform[z, x] != EmptyPlatformId)
+                CreatePlatform(x, -1, z, _platform[z, x]);
 
-            if (ballLevel[z, x] != EmptyBallId)
-                CreateBall(x, 0, z, ballLevel[z, x]);
+            if (level[z, x] != EmptyBallId)
+                CreateBall(x, 0, z, level[z, x]);
         }
     }
 
+    /// <summary>
+    ///   <para>Создает на сцене шар по игровым координатам.</para>
+    /// </summary>
     public void CreateBall(int x, int y, int z, int ballId)
     {
         // ballPrefabs[ballId - 1] --- "-1" так как нумерация в массиве с 1 идет
         Assert.IsTrue(ballId > EmptyBallId);
 
         GameObject ball = Instantiate(ballPrefabs[ballId - 1], Country.transform);
-        BallReady ballReady = ball.GetComponent<BallReady>(); 
+        BallReady ballReady = ball.GetComponent<BallReady>();
         ballReady.Move(x, y, z);
         ballReady.SetId(ballId);
-        ballLevelObject[z, x] = ball;
+        _level[z, x] = ballReady;
     }
 
     public void CreateBall(Vector3Int gameCoords, int ballId)
@@ -92,6 +73,9 @@ public class SceneManager : MonoBehaviour
         CreateBall(gameCoords.x, gameCoords.y, gameCoords.z, ballId);
     }
 
+    /// <summary>
+    ///   <para>Создает на сцене платформу по игровым координатам.</para>
+    /// </summary>
     public void CreatePlatform(int x, int y, int z, int platformId)
     {
         GameObject platform = Instantiate(platformPrefabs[platformId - 1], Country.transform);
@@ -103,6 +87,9 @@ public class SceneManager : MonoBehaviour
         CreatePlatform(gameCoords.x, gameCoords.y, gameCoords.z, platformId);
     }
 
+    /// <summary>
+    ///   <para>Вызывается при нажатии на шарик.</para>
+    /// </summary>
     public void BallClicked(BallReady ball)
     {
         Debug.Log("Контроллер получил шар");
@@ -116,6 +103,9 @@ public class SceneManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    ///   <para>Вызывается при нажатии на платформу.</para>
+    /// </summary>
     public void PlatformClicked(PlatformReady platform)
     {
         Debug.Log("Контроллер получил платформу");
@@ -125,7 +115,7 @@ public class SceneManager : MonoBehaviour
             Vector3Int start = _activeBall.GetGameCoords();
             Vector3Int finish = platform.GetGameCoords();
 
-            if (GetBallLevelId(finish) != EmptyBallId || !CheckPath(start, finish))
+            if (GetBallIdInGameCoords(finish) != EmptyBallId || !CheckPath(start, finish))
                 return;
 
             MoveActiveBall(finish + Vector3Int.up);
@@ -137,9 +127,12 @@ public class SceneManager : MonoBehaviour
         }
     }
 
+    /// <summary>
+    ///   <para>Вырезает все найденные линии из шариков и возвращает вырезал или нет.</para>
+    /// </summary>
     private bool CutLines()
     {
-        List<GameObject> balls = new List<GameObject>();
+        List<BallReady> balls = new List<BallReady>();
 
         for (int z = 0; z < rows; ++z)
         for (int x = 0; x < cols; ++x)
@@ -153,27 +146,30 @@ public class SceneManager : MonoBehaviour
         if (balls.Count == 0) return false;
 
         Debug.Log("Уничтожаем объекты");
-        foreach (GameObject ball in balls)
+        foreach (BallReady ball in balls)
         {
-            Vector3Int gameCoords = ball.GetComponent<BallReady>().GetGameCoords();
-            ballLevelObject[gameCoords.z, gameCoords.x] = null;
-            Destroy(ball, 0.5f);
+            Vector3Int gameCoords = ball.GetGameCoords();
+            _level[gameCoords.z, gameCoords.x] = null;
+            Destroy(ball.gameObject, 0.5f);
         }
 
         balls.Clear();
         return true;
     }
 
-    private List<GameObject> CulculateLine(int x0, int z0, int dx, int dz)
+    /// <summary>
+    ///   <para>Этот метод ищет линии которую можно вырезать.</para>
+    /// </summary>
+    private List<BallReady> CulculateLine(int x0, int z0, int dx, int dz)
     {
-        List<GameObject> balls = new List<GameObject>();
+        List<BallReady> balls = new List<BallReady>();
 
-        int ball = GetBallLevelId(x0, z0);
-        if (ball == EmptyBallId) return balls;
+        int ballId = GetBallIdInGameCoords(x0, z0);
+        if (ballId == EmptyBallId) return balls;
 
-        for (int x = x0, z = z0; GetBallLevelId(x, z) == ball; x += dx, z += dz)
+        for (int x = x0, z = z0; GetBallIdInGameCoords(x, z) == ballId; x += dx, z += dz)
         {
-            balls.Add(ballLevelObject[z, x]);
+            balls.Add(_level[z, x]);
         }
 
         if (balls.Count < cutBallsCount)
@@ -182,6 +178,9 @@ public class SceneManager : MonoBehaviour
         return balls;
     }
 
+    /// <summary>
+    ///   <para>Перемещяет шарик по игровым координатам.</para>
+    /// </summary>
     private void MoveActiveBall(Vector3Int finish)
     {
         Vector3Int start = _activeBall.GetGameCoords();
@@ -193,22 +192,31 @@ public class SceneManager : MonoBehaviour
         _activeBall = null;
     }
 
+    /// <summary>
+    ///   <para>Меняет местами значения в игровом массиве.</para>
+    /// </summary>
     private void SwapBall(Vector3Int start, Vector3Int finish)
     {
-        ballLevelObject[finish.z, finish.x] = ballLevelObject[start.z, start.x];
-        ballLevelObject[start.z, start.x] = null;
+        _level[finish.z, finish.x] = _level[start.z, start.x];
+        _level[start.z, start.x] = null;
     }
 
+    /// <summary>
+    ///   <para>Конвертит массив с шарами в массив с id.</para>
+    /// </summary>
     public int[,] BallObjectToIntArray()
     {
         int[,] Map = new int[rows, cols];
         for (int z = 0; z < rows; z++)
         for (int x = 0; x < cols; x++)
-            Map[z, x] = GetBallLevelId(x, z);
+            Map[z, x] = GetBallIdInGameCoords(x, z);
 
         return Map;
     }
 
+    /// <summary>
+    ///   <para>Проверяет есть ли путь в игровом массиве.</para>
+    /// </summary>
     public bool CheckPath(Vector3Int start, Vector3Int finish)
     {
         int[,] Map = BallObjectToIntArray();
@@ -234,16 +242,16 @@ public class SceneManager : MonoBehaviour
                 {
                     add = true;
                     //Ставим значение шага-1 в соседние ячейки (если они проходимы)
-                    if (x - 1 >= 0 && Map[z, x - 1] == EmptyBallId && platformLevel[z, x - 1] != EmptyPlatformId)
+                    if (x - 1 >= 0 && Map[z, x - 1] == EmptyBallId && _platform[z, x - 1] != EmptyPlatformId)
                         Map[z, x - 1] = step - 1;
 
-                    if (z - 1 >= 0 && Map[z - 1, x] == EmptyBallId && platformLevel[z - 1, x] != EmptyPlatformId)
+                    if (z - 1 >= 0 && Map[z - 1, x] == EmptyBallId && _platform[z - 1, x] != EmptyPlatformId)
                         Map[z - 1, x] = step - 1;
 
-                    if (x + 1 < cols && Map[z, x + 1] == EmptyBallId && platformLevel[z, x + 1] != EmptyPlatformId)
+                    if (x + 1 < cols && Map[z, x + 1] == EmptyBallId && _platform[z, x + 1] != EmptyPlatformId)
                         Map[z, x + 1] = step - 1;
 
-                    if (z + 1 < rows && Map[z + 1, x] == EmptyBallId && platformLevel[z + 1, x] != EmptyPlatformId)
+                    if (z + 1 < rows && Map[z + 1, x] == EmptyBallId && _platform[z + 1, x] != EmptyPlatformId)
                         Map[z + 1, x] = step - 1;
                 }
             }
@@ -262,33 +270,45 @@ public class SceneManager : MonoBehaviour
         return false;
     }
 
+    /// <summary>
+    ///   <para>Создает рандомные шарики равное addBalls </para>
+    /// </summary>
     private void AddRandomBalls()
     {
         for (int i = 0; i < addBalls; i++)
             AddRandomBall();
     }
 
+    /// <summary>
+    ///   <para>Создает один рандомный шарик</para>
+    /// </summary>
     private void AddRandomBall()
     {
         List<Vector3Int> emptyCell = GetEmptyCell();
         if (emptyCell.Count == 0) return;
-        
+
         Vector3Int gameCoords = emptyCell[Random.Range(0, emptyCell.Count)];
-        
+
         int ballId = Random.Range(0, ballPrefabs.Length) + 1;
         CreateBall(gameCoords, ballId);
     }
 
+    /// <summary>
+    ///   <para>Выбирает все пустые ящейки в игровом массиве</para>
+    /// </summary>
     private List<Vector3Int> GetEmptyCell()
     {
         List<Vector3Int> emptyCell = new List<Vector3Int>();
         for (int z = 0; z < rows; ++z)
         for (int x = 0; x < cols; ++x)
-            if (GetBallLevelId(x, z) == EmptyBallId && platformLevel[z, x] != EmptyPlatformId)
+            if (GetBallIdInGameCoords(x, z) == EmptyBallId && _platform[z, x] != EmptyPlatformId)
                 emptyCell.Add(new Vector3Int(x, 0, z));
         return emptyCell;
     }
 
+    /// <summary>
+    ///   <para>Конвертит игровую координату в координату на сцене</para>
+    /// </summary>
     public Vector3 GameCoordsToPosition(int gameX, int gameY, int gameZ)
     {
         float posX = gameX * offsetX - cols / 2;
@@ -302,22 +322,27 @@ public class SceneManager : MonoBehaviour
         return GameCoordsToPosition(gameCoords.x, gameCoords.y, gameCoords.z);
     }
 
+    /// <summary>
+    ///   <para>Проверяет не вышли ли мы за пределы игрового массива</para>
+    /// </summary>
     private bool OnLevel(int x, int z)
     {
         return z >= 0 && z <= rows - 1 && x >= 0 && x <= cols - 1;
     }
 
-    private int GetBallLevelId(int x, int z)
+    /// <summary>
+    ///   <para>возвращяет id шарика в игровом массиве если шарик там есть иначе EmptyBallId</para>
+    /// </summary>
+    private int GetBallIdInGameCoords(int x, int z)
     {
         if (!OnLevel(x, z)) return EmptyBallId;
-        if (ballLevelObject[z, x] == null) 
-            return 0;
-        return ballLevelObject[z, x].GetComponent<BallReady>().GetId();
-     
+        if (_level[z, x] == null)
+            return EmptyBallId;
+        return _level[z, x].GetId();
     }
 
-    private int GetBallLevelId(Vector3Int gameCoords)
+    private int GetBallIdInGameCoords(Vector3Int gameCoords)
     {
-        return GetBallLevelId(gameCoords.x, gameCoords.z);
+        return GetBallIdInGameCoords(gameCoords.x, gameCoords.z);
     }
 }
