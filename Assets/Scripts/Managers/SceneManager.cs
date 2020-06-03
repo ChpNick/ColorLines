@@ -28,7 +28,7 @@ public class SceneManager : MonoBehaviour
         {1, 1, 1, 1, 0, 1, 1, 1, 1},
         {1, 1, 1, 1, 1, 1, 1, 1, 1},
         {0, 0, 1, 1, 1, 1, 1, 0, 0},
-        {0, 0, 1, 1, 1, 1, 1, 0, 0},
+        {0, 0, 1, 1, 1,  1, 1, 0, 0},
         {0, 0, 1, 1, 1, 1, 1, 0, 0},
         {1, 1, 1, 1, 1, 1, 1, 1, 1},
         {1, 1, 1, 1, 0, 1, 1, 1, 1},
@@ -186,16 +186,20 @@ public class SceneManager : MonoBehaviour
     {
         Vector3Int start = _activeBall.GetGameCoords();
 
-        ballLevel[finish.z, finish.x] = ballLevel[start.z, start.x];
-        ballLevel[start.z, start.x] = 0;
-
-        ballLevelObject[finish.z, finish.x] = ballLevelObject[start.z, start.x];
-        ballLevelObject[start.z, start.x] = null;
-
+        SwapBall(start, finish);
         _activeBall.Move(finish);
 
         _activeBall.SetUnActive();
         _activeBall = null;
+    }
+
+    private void SwapBall(Vector3Int start, Vector3Int finish)
+    {
+        ballLevel[finish.z, finish.x] = ballLevel[start.z, start.x];
+        ballLevel[start.z, start.x] = EmptyBallId;
+
+        ballLevelObject[finish.z, finish.x] = ballLevelObject[start.z, start.x];
+        ballLevelObject[start.z, start.x] = null;
     }
 
     public bool CheckPath(Vector3Int start, Vector3Int finish)
